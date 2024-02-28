@@ -113,8 +113,7 @@ double process_block(net_t *net, size_t a, size_t b)
         for (int j = j0; j < jm; j++)
         {
             double temp = net->u[i][j];
-            net->u[i][j] = 0.25 * (net->u[i - 1][j] + net->u[i + 1][j] + net->u[i][j - 1] + net->u[i][j + 1] -
-                                   net->h * net->h * net->f[i][j]);
+            net->u[i][j] = 0.25 * (net->u[i - 1][j] + net->u[i + 1][j] + net->u[i][j - 1] + net->u[i][j + 1] - net->h * net->h * net->f[i][j]);
             double d = fabs(temp - net->u[i][j]);
             dm = max(dm, d);
         }
@@ -187,11 +186,9 @@ double u_4(double x, double y) { return exp(x + 2 * y) + pow(x, 2.0); }
 double f_4(double x, double y) { return 5 * exp(x + 2 * y) + 2; }
 
 double u_5(double x, double y) { return 1000 * pow(x, 3) + 2000 * pow(y, 3); }
-
 double f_5(double x, double y) { return 6000 * x + 12000 * y; }
 
 double u_6 /*from book*/ (double x, double y) { return (1 - 2 * y) * (1 - 2 * x) * 100; }
-
 double f_6 /*from book*/ (double x, double y) { return 0; }
 
 u_func_t create_u_func(fun_xy u, fun_xy f)
