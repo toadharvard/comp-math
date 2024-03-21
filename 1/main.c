@@ -10,18 +10,20 @@
 
 double APPROXIMATE_ERROR = 0.1;
 double ABSOLUTE_ERROR = -1;
-size_t BLOCK_SIZE = 64;
-size_t NET_SIZE = 100;
+size_t BLOCK_SIZE = 1000;
+size_t NET_SIZE = 20000;
 size_t THREAD_COUNT = 8;
-size_t ITERATIONS_COUNT = 20000;
+size_t ITERATIONS_COUNT = 1;
 double K_PARAM = 1;
 bool DEBUG = false;
+
 void set_debug(bool debug)
 {
     DEBUG = debug;
 }
 
-void set_iterations(size_t iterations_count){
+void set_iterations(size_t iterations_count)
+{
     ITERATIONS_COUNT = iterations_count;
 }
 
@@ -148,17 +150,6 @@ void free_ref_net(ref_net_t *net)
     return free(net);
 }
 
-void print_tb(double** tb, size_t sz) {
-    printf("\n");
-    for (int i = 0; i < sz; i++) {
-        for (int j = 0; j < sz; j++) {
-            printf("%7.2f ", tb[i][j]);
-        }
-        printf("\n");
-    }
-}
-
-
 double process_block(net_t *net, size_t a, size_t b)
 {
     int i0 = 1 + a * BLOCK_SIZE;
@@ -220,10 +211,6 @@ double process_iteration(net_t *net, double *dm, double dmax, size_t number_of_b
 
 bool approximateCond(double dmax)
 {
-    if (DEBUG)
-    {
-        printf("AppError: %f vs %f\n", dmax, APPROXIMATE_ERROR);
-    }
     return dmax > APPROXIMATE_ERROR;
 }
 
@@ -246,10 +233,6 @@ bool absoluteCond(net_t *net, u_func_t used_function)
         }
     }
     free_ref_net(ref);
-    if (DEBUG)
-    {
-        printf("AbsError: %f vs (%f, %f) vs %f\n", sm / (net->size * net->size), mn, mx, ABSOLUTE_ERROR);
-    }
     return sm / (net->size * net->size) > ABSOLUTE_ERROR;
 }
 
@@ -261,11 +244,17 @@ size_t process_net(net_t *net, u_func_t used_function)
     number_of_blocks += (BLOCK_SIZE * number_of_blocks != size_without_borders) ? 1 : 0;
     double dmax = 0;
     double *dm = calloc(number_of_blocks, sizeof(*dm));
+
+    if (DEBUG){
+        printf("Number of blocks = %zd, blocks/thread = %lf, BLOCK_SIZE = %zd\n", number_of_blocks, number_of_blocks * 1.0 / THREAD_COUNT, BLOCK_SIZE);
+    }
+
     do
     {
         number_of_iterations += 1;
         dmax = process_iteration(net, dm, dmax, number_of_blocks);
-        if (ITERATIONS_COUNT != 1 && number_of_iterations % ITERATIONS_COUNT == 0){
+        if (ITERATIONS_COUNT != -1 && number_of_iterations % ITERATIONS_COUNT == 0)
+        {
             break;
         }
     } while (APPROXIMATE_ERROR != -1 ? approximateCond(dmax) : absoluteCond(net, used_function));
@@ -274,8 +263,8 @@ size_t process_net(net_t *net, u_func_t used_function)
 }
 
 // Examples
-double u_1(double x, double y) { return K_PARAM * x * x * y * (x - 1) * (y - 1); }
-double f_1(double x, double y) { return K_PARAM * (6 * x - 2) * (y - 1) * y + 2 * K_PARAM * (x - 1) * x * x; }
+double u_1(double x, double y) { return 1 * x * x * y * (x - 1) * (y - 1); }
+double f_1(double x, double y) { return 1 * (6 * x - 2) * (y - 1) * y + 2 * 1 * (x - 1) * x * x; }
 
 double u_2(double x, double y) { return pow(x, 2.0) + pow(y, 3.0); }
 double f_2(double x, double y) { return 6 * y + 2; }
@@ -305,7 +294,7 @@ exec_res_t run(u_func_t used_function)
     return res;
 }
 
-exec_res_t execute(int function_number, double k)
+exec_res_t execute(int function_number)
 {
     u_func_t allowed_functions[] = {
         create_u_func(u_1, f_1),
@@ -327,4 +316,10 @@ exec_res_t execute(int function_number, double k)
     omp_set_num_threads(THREAD_COUNT);
     exec_res_t res = run(used_function);
     return res;
+}
+
+int main(int argc, char *argv[])
+{
+    exec_res_t res = execute(5);
+    printf("Iterations: %zu, Time: %f\n", res.number_of_iterations, res.total_time);
 }
